@@ -35,8 +35,92 @@
 #include <linux/lightnvm.h>
 #include <liblightnvm.h>
 #include <nvm.h>
-#include <nvm_util.h>
 #include <nvm_debug.h>
+
+/*
+ * Searches the udev 'subsystem' for device named 'dev_name' of type 'devtype'
+ *
+ * NOTE: Caller is responsible for calling `udev_device_unref` on the returned
+ * udev_device
+ *
+ * @returns First device in 'subsystem' of given 'devtype' with given 'dev_name'
+ */
+struct udev_device *udev_dev_find(struct udev *udev, const char *subsystem,
+				  const char *devtype, const char *dev_name)
+{
+	struct udev_device *dev = NULL;
+
+	struct udev_enumerate *enumerate;
+	struct udev_list_entry *devices, *dev_list_entry;
+
+	enumerate = udev_enumerate_new(udev);	/* Search 'subsystem' */
+	udev_enumerate_add_match_subsystem(enumerate, subsystem);
+	udev_enumerate_scan_devices(enumerate);
+	devices = udev_enumerate_get_list_entry(enumerate);
+	udev_list_entry_foreach(dev_list_entry, devices) {
+		const char *path;
+		int path_len;
+
+		path = udev_list_entry_get_name(dev_list_entry);
+		if (!path) {
+			NVM_DEBUG("Failed retrieving path from entry\n");
+			continue;
+		}
+		path_len = strlen(path);
+
+		if (dev_name) {			/* Compare name */
+			int dev_name_len = strlen(dev_name);
+			int match = strcmp(dev_name,
+					   path + path_len-dev_name_len);
+			if (match != 0) {
+				continue;
+			}
+		}
+						/* Get the udev object */
+		dev = udev_device_new_from_syspath(udev, path);
+		if (!dev) {
+			NVM_DEBUG("Failed retrieving device from path\n");
+			continue;
+		}
+
+		if (devtype) {			/* Compare device type */
+			const char *sys_devtype;
+			int sys_devtype_match;
+
+			sys_devtype = udev_device_get_devtype(dev);
+			if (!sys_devtype) {
+				NVM_DEBUG("sys_devtype(%s)", sys_devtype);
+				udev_device_unref(dev);
+				dev = NULL;
+				continue;
+			}
+
+			sys_devtype_match = strcmp(devtype, sys_devtype);
+			if (sys_devtype_match != 0) {
+				NVM_DEBUG("%s != %s\n", devtype, sys_devtype);
+				udev_device_unref(dev);
+				dev = NULL;
+				continue;
+			}
+		}
+
+		break;
+	}
+
+	return dev;
+}
+
+struct udev_device *udev_nvmdev_find(struct udev *udev, const char *dev_name)
+{
+	struct udev_device *dev;
+
+	dev  = udev_dev_find(udev, "block", NULL, dev_name);
+	if (dev)
+		return dev;
+
+	NVM_DEBUG("NOTHING FOUND\n");
+	return NULL;
+}
 
 static int sysattr2int(struct udev_device *dev, const char *attr, int *val)
 {

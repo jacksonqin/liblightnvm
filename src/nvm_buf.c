@@ -1,9 +1,8 @@
 /*
- * nvm_util - liblightnvm misc. utilities (internal)
+ * buf - Helper functions for buffer management
  *
  * Copyright (C) 2015 Javier González <javier@cnexlabs.com>
  * Copyright (C) 2015 Matias Bjørling <matias@cnexlabs.com>
- * Copyright (C) 2016 Simon A. F. Lund <slund@cnexlabs.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,13 +25,42 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef __NVM_UTIL_H
-#define __NVM_UTIL_H
+#define _GNU_SOURCE
+#include <stdlib.h>
+#include <string.h>
+#include <liblightnvm.h>
+#include <nvm_debug.h>
 
-#include <libudev.h>
+void *nvm_buf_alloc(NVM_GEO geo, size_t nbytes)
+{
+	char *buf;
+	int ret;
 
-struct udev_device *udev_dev_find(struct udev *udev, const char *subsystem,
-				  const char *devtype, const char *dev_name);
-struct udev_device *udev_nvmdev_find(struct udev *udev, const char *dev_name);
+	ret = posix_memalign((void **)&buf, geo.nbytes, nbytes);
+	if (ret)
+		return NULL;
 
-#endif /* __NMV_UTIL_H */
+	return buf;
+}
+
+void nvm_buf_fill(char *buf, size_t nbytes)
+{
+	#pragma omp parallel for schedule(static, 1)
+	for (size_t i = 0; i < nbytes; ++i)
+		buf[i] = (i % 26) + 65;
+}
+
+void nvm_buf_pr(char *buf, size_t nbytes)
+{
+	const int width = 32;
+	int i;
+
+	printf("** NVM_BUF_PR - BEGIN **");
+	for (i = 0; i < nbytes; i++) {
+		if (!(i % width))
+			printf("\ni[%d,%d]: ", i, i+(width-1));
+		printf(" %c", buf[i]);
+	}
+	printf("\n** NVM_BUF_PR - END **\n");
+}
+
