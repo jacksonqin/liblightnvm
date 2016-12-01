@@ -376,23 +376,6 @@ struct nvm_geo nvm_dev_attr_geo(struct nvm_dev *dev)
 	return dev->geo;
 }
 
-void nvm_geo_pr(struct nvm_geo geo)
-{
-	printf("geo {\n");
-	printf(" nchannels(%lu), nluns(%lu), nplanes(%lu), nblocks(%lu),\n",
-	       geo.nchannels, geo.nluns, geo.nplanes, geo.nblocks);
-	printf(" npages(%lu), nsectors(%lu), nbytes(%lu),\n",
-	       geo.npages, geo.nsectors, geo.nbytes);
-	printf(" meta_nbytes(%lu),\n", geo.meta_nbytes);
-	printf(" vpg_nbytes(%lub:%luKb),\n",
-	       geo.vpg_nbytes, geo.vpg_nbytes >> 10);
-	printf(" vblk_nbytes(%lub:%luMb),\n",
-	       geo.vblk_nbytes, geo.vblk_nbytes >> 20);
-	printf(" total_nbytes(%lub:%luMb)\n",
-	       geo.tbytes, geo.tbytes >> 20);
-	printf("}\n");
-}
-
 struct nvm_dev *nvm_dev_open(const char *dev_path)
 {
 	struct nvm_dev *dev;
