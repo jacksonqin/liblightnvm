@@ -44,7 +44,7 @@ extern "C" {
 #define NVM_MAGIC_FLAG_QUAD 0x2		///< Quad-plane (NVM_IO_QUAD_ACCESS)
 #define NVM_MAGIC_FLAG_SCRBL 0x200	///< Scrambler ON/OFF: Context sensitive
 
-#define NVM_MAGIC_FLAG_DEFAULT (NVM_MAGIC_FLAG_SNGL | NVM_MAGIC_FLAG_SCRBL);
+#define NVM_MAGIC_FLAG_DEFAULT NVM_MAGIC_FLAG_SNGL
 
 #define NVM_BLK_BITS (16)	///< Number of bits for block field
 #define NVM_PG_BITS  (16)	///< Number of bits for page field
