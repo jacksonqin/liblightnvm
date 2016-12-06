@@ -13,7 +13,7 @@ Here is what you need:
 The following sections describe how to and options for meeting started
 prerequisites.
 
-An Open-Channel SDD
+An Open-Channel SSD
 ===================
 
 Physical
@@ -69,8 +69,5 @@ sources available here:
 Management Tool
 ===============
 
-nvme-cli
-
-The NVMe cli tool supports Open-Channel SSDs through the lnvm extension. You may use "nvme lnvm" to see supported parameters.
-
+The `NVMe CLI <https://github.com/linux-nvme/nvme-cli>`_ tool supports Open-Channel SSDs through the lnvm extension. You may use "nvme lnvm" to see supported parameters.
 
