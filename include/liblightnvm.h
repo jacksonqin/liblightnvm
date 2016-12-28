@@ -661,12 +661,17 @@ struct nvm_dev *nvm_vblk_attr_dev(struct nvm_vblk *vblk);
 struct nvm_addr *nvm_vblk_attr_addrs(struct nvm_vblk *vblk);
 
 /**
- * Retrieve the number of address in the address set of the virtual block
+ * Retrieve the number of addresses in the address set of the virtual block
  *
  * @param vblk The entity to retrieve information from
  */
 int nvm_vblk_attr_naddrs(struct nvm_vblk *vblk);
 
+/**
+ * Retrieve the size, in bytes, of a given virtual block
+ *
+ * @param vblk The entity to retrieve information from
+ */
 size_t nvm_vblk_attr_nbytes(struct nvm_vblk *vblk);
 
 /**
