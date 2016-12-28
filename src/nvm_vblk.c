@@ -284,13 +284,14 @@ ssize_t nvm_vblk_pread(struct nvm_vblk *vblk, void *buf, size_t count,
 				addrs[i].g.pg = vpg;
 				addrs[i].g.pl = (i / geo->nsectors) % geo->nplanes;
 				addrs[i].g.sec = i % geo->nsectors;
-
+				
+				/*
 				#pragma omp critical
 				{
 				printf("spg(%03lu) i(%02lu) idx(%d) vpg(%d)",
 					spg, i, idx, vpg);
 				nvm_addr_pr(addrs[i]);
-				}
+				}*/
 			}
 
 			ssize_t err = nvm_addr_read(vblk->dev, addrs,
