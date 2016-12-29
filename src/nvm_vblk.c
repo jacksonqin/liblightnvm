@@ -66,6 +66,7 @@ struct nvm_vblk* nvm_vblk_alloc_set(struct nvm_dev *dev,
 	vblk->pos_read = 0;
 	vblk->nbytes = vblk->naddrs * geo->nplanes * geo->npages *
 		       geo->nsectors * geo->sector_nbytes;
+	vblk->nthreads = naddrs;
 
 	return vblk;
 }
@@ -177,12 +178,12 @@ ssize_t nvm_vblk_pwrite(struct nvm_vblk *vblk, const void *buf, size_t count,
 		}
 	}
 
-	#pragma omp parallel num_threads(vblk->naddrs) reduction(+:nerr)
+	#pragma omp parallel num_threads(vblk->nthreads) reduction(+:nerr)
 	{
 		const int tid = omp_get_thread_num();
 
 		#pragma omp barrier
-		for (size_t spg = bgn + tid; spg < end; spg += vblk->naddrs) {
+		for (size_t spg = bgn + tid; spg < end; spg += vblk->nthreads) {
 			struct nvm_addr addrs[NVM_CMD_NADDR];
 			const char *data_off;
 
@@ -263,12 +264,12 @@ ssize_t nvm_vblk_pread(struct nvm_vblk *vblk, void *buf, size_t count,
 		return -1;
 	}
 
-	#pragma omp parallel num_threads(vblk->naddrs) reduction(+:nerr)
+	#pragma omp parallel num_threads(vblk->nthreads) reduction(+:nerr)
 	{
 		const int tid = omp_get_thread_num();
 
 		#pragma omp barrier
-		for (size_t spg = bgn + tid; spg < end; spg += vblk->naddrs) {
+		for (size_t spg = bgn + tid; spg < end; spg += vblk->nthreads) {
 			struct nvm_addr addrs[NVM_CMD_NADDR];
 			char *buf_off;
 
@@ -347,6 +348,18 @@ size_t nvm_vblk_attr_pos_read(struct nvm_vblk *vblk)
 size_t nvm_vblk_attr_pos_write(struct nvm_vblk *vblk)
 {
 	return vblk->pos_write;
+}
+
+int nvm_vblk_set_nthreads(struct nvm_vblk *vblk, int nthreads)
+{
+	if ((nthreads > vblk->naddrs) || (nthreads < 1)) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	vblk->nthreads = nthreads;
+
+	return 0;
 }
 
 void nvm_vblk_pr(struct nvm_vblk *vblk)

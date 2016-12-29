@@ -667,6 +667,8 @@ struct nvm_addr *nvm_vblk_attr_addrs(struct nvm_vblk *vblk);
  */
 int nvm_vblk_attr_naddrs(struct nvm_vblk *vblk);
 
+int nvm_vblk_set_nthreads(struct nvm_vblk *vblk, int nthreads);
+
 /**
  * Retrieve the size, in bytes, of a given virtual block
  *
