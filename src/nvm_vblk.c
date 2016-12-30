@@ -221,7 +221,7 @@ ssize_t nvm_vblk_pwrite(struct nvm_vblk *vblk, const void *buf, size_t count,
 			#pragma omp critical
 			{
 				for (int i = 0; i < NVM_CMD_NADDR; ++i) {
-					printf("spg(%03lu) idx(%d) vpg(%d) ",
+					printf("spg(%04lu) idx(%d) vpg(%04d) ",
 						spg, idx, vpg);
 					nvm_addr_pr(addrs[i]);
 				}
@@ -316,7 +316,7 @@ ssize_t nvm_vblk_pread(struct nvm_vblk *vblk, void *buf, size_t count,
 			#pragma omp critical
 			{
 				for (int i = 0; i < NVM_CMD_NADDR; ++i) {
-					printf("spg(%03lu) idx(%d) vpg(%d) ",
+					printf("spg(%04lu) idx(%d) vpg(%04d) ",
 						spg, idx, vpg);
 					nvm_addr_pr(addrs[i]);
 				}
