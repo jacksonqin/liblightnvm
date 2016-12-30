@@ -42,7 +42,18 @@ struct nvm_vblk* nvm_vblk_alloc(struct nvm_dev *dev, struct nvm_addr addrs[],
 				int naddrs)
 {
 	struct nvm_vblk *vblk;
-	const struct nvm_geo *geo = nvm_dev_get_geo(dev);
+	const struct nvm_geo *geo;
+	
+	if (naddrs > 128) {
+		errno = EINVAL;
+		return NULL;
+	}
+
+	geo = nvm_dev_get_geo(dev);
+	if (!geo) {
+		errno = EINVAL;
+		return NULL;
+	}
 
 	vblk = malloc(sizeof(*vblk));
 	if (!vblk) {
@@ -57,14 +68,14 @@ struct nvm_vblk* nvm_vblk_alloc(struct nvm_dev *dev, struct nvm_addr addrs[],
 			return NULL;
 		}
 
-		vblk->addrs[i].ppa = addrs[i].ppa;
+		vblk->blks[i].ppa = addrs[i].ppa;
 	}
 
-	vblk->naddrs = naddrs;
+	vblk->nblks = naddrs;
 	vblk->dev = dev;
 	vblk->pos_write = 0;
 	vblk->pos_read = 0;
-	vblk->nbytes = vblk->naddrs * geo->nplanes * geo->npages *
+	vblk->nbytes = vblk->nblks * geo->nplanes * geo->npages *
 		       geo->nsectors * geo->sector_nbytes;
 	vblk->nthreads = naddrs;
 
@@ -84,16 +95,17 @@ struct nvm_vblk *nvm_vblk_alloc_line(struct nvm_dev *dev, int ch_bgn,
 
 	for (int lun = lun_bgn; lun <= lun_end; ++lun) {
 		for (int ch = ch_bgn; ch <= ch_end; ++ch) {
-			vblk->addrs[vblk->naddrs].ppa = 0;
-			vblk->addrs[vblk->naddrs].g.ch = ch;
-			vblk->addrs[vblk->naddrs].g.lun = lun;
-			vblk->addrs[vblk->naddrs].g.blk = blk;
-			++(vblk->naddrs);
+			vblk->blks[vblk->nblks].ppa = 0;
+			vblk->blks[vblk->nblks].g.ch = ch;
+			vblk->blks[vblk->nblks].g.lun = lun;
+			vblk->blks[vblk->nblks].g.blk = blk;
+			++(vblk->nblks);
 		}
 	}
 
-	vblk->nbytes = vblk->naddrs * geo->nplanes * geo->npages *
+	vblk->nbytes = vblk->nblks * geo->nplanes * geo->npages *
 		       geo->nsectors * geo->sector_nbytes;
+	vblk->nthreads = vblk->nblks;
 
 	return vblk;
 }
@@ -111,12 +123,12 @@ ssize_t nvm_vblk_erase(struct nvm_vblk *vblk)
 	const int PMODE = vblk->dev->pmode;
 	
 	#pragma omp parallel for schedule(static) reduction(+:nerr)
-	for (int i = 0; i < vblk->naddrs; ++i) {
+	for (int i = 0; i < vblk->nblks; ++i) {
 		struct nvm_addr addrs[nplanes];
 		ssize_t err;
 
 		for (int i = 0; i < nplanes; ++i) {
-			addrs[i].ppa = vblk->addrs[i].ppa;
+			addrs[i].ppa = vblk->blks[i].ppa;
 			addrs[i].g.pl = i % nplanes;
 		}
 
@@ -187,12 +199,12 @@ ssize_t nvm_vblk_pwrite(struct nvm_vblk *vblk, const void *buf, size_t count,
 			else
 				data_off = data;
 
-			int idx = spg % vblk->naddrs;
-			int vpg = (spg / vblk->naddrs) % geo->npages;
+			int idx = spg % vblk->nblks;
+			int vpg = (spg / vblk->nblks) % geo->npages;
 
 			// Unroll: nplane X nsector
 			for (int i = 0; i < NVM_CMD_NADDR; ++i) {
-				addrs[i].ppa = vblk->addrs[idx].ppa;
+				addrs[i].ppa = vblk->blks[idx].ppa;
 				addrs[i].g.pg = vpg;
 				addrs[i].g.pl = (i / geo->nsectors) % geo->nplanes;
 				addrs[i].g.sec = i % geo->nsectors;
@@ -271,12 +283,12 @@ ssize_t nvm_vblk_pread(struct nvm_vblk *vblk, void *buf, size_t count,
 			buf_off = buf + spg * geo->sector_nbytes * NVM_CMD_NADDR - offset;
 
 			// channels X luns X pages
-			int idx = spg % vblk->naddrs;
-			int vpg = (spg / vblk->naddrs) % geo->npages;
+			int idx = spg % vblk->nblks;
+			int vpg = (spg / vblk->nblks) % geo->npages;
 
 			// Unroll: nplane X nsector
 			for (int i = 0; i < NVM_CMD_NADDR; ++i) {
-				addrs[i].ppa = vblk->addrs[idx].ppa;
+				addrs[i].ppa = vblk->blks[idx].ppa;
 				addrs[i].g.pg = vpg;
 				addrs[i].g.pl = (i / geo->nsectors) % geo->nplanes;
 				addrs[i].g.sec = i % geo->nsectors;
@@ -286,7 +298,7 @@ ssize_t nvm_vblk_pread(struct nvm_vblk *vblk, void *buf, size_t count,
 				{
 				printf("spg(%03lu) i(%02lu) idx(%d) vpg(%d)",
 					spg, i, idx, vpg);
-				nvm_addr_pr(addrs[i]);
+				nvm_addr_pr(blks[i]);
 				}*/
 			}
 
@@ -322,12 +334,12 @@ ssize_t nvm_vblk_read(struct nvm_vblk *vblk, void *buf, size_t count)
 
 struct nvm_addr *nvm_vblk_get_addrs(struct nvm_vblk *vblk)
 {
-	return vblk->addrs;
+	return vblk->blks;
 }
 
 int nvm_vblk_get_naddrs(struct nvm_vblk *vblk)
 {
-	return vblk->naddrs;
+	return vblk->nblks;
 }
 
 size_t nvm_vblk_get_nbytes(struct nvm_vblk *vblk)
@@ -352,7 +364,7 @@ int nvm_vblk_get_nthreads(struct nvm_vblk *vblk)
 
 int nvm_vblk_set_nthreads(struct nvm_vblk *vblk, int nthreads)
 {
-	if ((nthreads > vblk->naddrs) || (nthreads < 1)) {
+	if ((nthreads > vblk->nblks) || (nthreads < 1)) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -367,6 +379,6 @@ void nvm_vblk_pr(struct nvm_vblk *vblk)
 	printf("vblk {\n");
 	printf(" nbytes(%lub:%luMb),\n", vblk->nbytes, vblk->nbytes >> 20);
 	printf("}\n");
-	printf("vblk-"); nvm_addrs_pr(vblk->addrs, vblk->naddrs);
+	printf("vblk-"); nvm_addrs_pr(vblk->blks, vblk->nblks);
 }
 
