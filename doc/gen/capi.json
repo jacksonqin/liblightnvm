@@ -93,7 +93,6 @@
 		"nvm_vblk_pwrite",
 
 		"nvm_vblk_alloc",
-		"nvm_vblk_alloc_set",
 		"nvm_vblk_alloc_line",
 		"nvm_vblk_free",
 		"nvm_vblk_pr",
