@@ -218,12 +218,10 @@ ssize_t nvm_vblk_pwrite(struct nvm_vblk *vblk, const void *buf, size_t count,
 				++nerr;
 #ifdef NVM_DEBUG_ENABLED
 				#pragma omp critical
-				{
-					for (int i = 0; i < NVM_CMD_NADDR; ++i) {
-						printf("spg(%04lu) idx(%d) vpg(%04d) ",
-							spg, idx, vpg);
-						nvm_addr_pr(addrs[i]);
-					}
+				for (int i = 0; i < NVM_CMD_NADDR; ++i) {
+					printf("E: spg(%04lu) idx(%d) vpg(%04d) ",
+						spg, idx, vpg);
+					nvm_addr_pr(addrs[i]);
 				}
 #endif
 			}
@@ -309,16 +307,13 @@ ssize_t nvm_vblk_pread(struct nvm_vblk *vblk, void *buf, size_t count,
 						     NVM_CMD_NADDR, buf_off,
 						     NULL, PMODE, &ret);
 			if (err) {
-				NVM_DEBUG("FAILED: nvm_addr_write e(%ld)", err);
 				++nerr;
 #ifdef NVM_DEBUG_ENABLED
 				#pragma omp critical
-				{
-					for (int i = 0; i < NVM_CMD_NADDR; ++i) {
-						printf("spg(%04lu) idx(%d) vpg(%04d) ",
-							spg, idx, vpg);
-						nvm_addr_pr(addrs[i]);
-					}
+				for (int i = 0; i < NVM_CMD_NADDR; ++i) {
+					printf("E: spg(%04lu) idx(%d) vpg(%04d) ",
+						spg, idx, vpg);
+					nvm_addr_pr(addrs[i]);
 				}
 #endif
 			}
