@@ -193,6 +193,7 @@ ssize_t nvm_vblk_pwrite(struct nvm_vblk *vblk, const void *buf, size_t count,
 		for (size_t spg = bgn + tid; spg < end; spg += vblk->nthreads) {
 			struct nvm_addr addrs[NVM_CMD_NADDR];
 			const char *data_off;
+			struct nvm_ret ret = {};
 
 			if (buf)
 				data_off = data + spg * geo->sector_nbytes * NVM_CMD_NADDR - offset;
@@ -212,11 +213,20 @@ ssize_t nvm_vblk_pwrite(struct nvm_vblk *vblk, const void *buf, size_t count,
 
 			ssize_t err = nvm_addr_write(vblk->dev, addrs,
 						     NVM_CMD_NADDR, data_off,
-						     NULL, PMODE, NULL);
+						     NULL, PMODE, &ret);
 			if (err) {
-				NVM_DEBUG("FAILED: nvm_addr_write e(%ld)", err);
 				++nerr;
 			}
+#ifdef NVM_DEBUG_ENABLED
+			#pragma omp critical
+			{
+				for (int i = 0; i < NVM_CMD_NADDR; ++i) {
+					printf("spg(%03lu) idx(%d) vpg(%d) ",
+						spg, idx, vpg);
+					nvm_addr_pr(addrs[i]);
+				}
+			}
+#endif
 		}
 	}
 
@@ -279,6 +289,7 @@ ssize_t nvm_vblk_pread(struct nvm_vblk *vblk, void *buf, size_t count,
 		for (size_t spg = bgn + tid; spg < end; spg += vblk->nthreads) {
 			struct nvm_addr addrs[NVM_CMD_NADDR];
 			char *buf_off;
+			struct nvm_ret ret = {};
 
 			buf_off = buf + spg * geo->sector_nbytes * NVM_CMD_NADDR - offset;
 
@@ -292,23 +303,25 @@ ssize_t nvm_vblk_pread(struct nvm_vblk *vblk, void *buf, size_t count,
 				addrs[i].g.pg = vpg;
 				addrs[i].g.pl = (i / geo->nsectors) % geo->nplanes;
 				addrs[i].g.sec = i % geo->nsectors;
-				
-				/*
-				#pragma omp critical
-				{
-				printf("spg(%03lu) i(%02lu) idx(%d) vpg(%d)",
-					spg, i, idx, vpg);
-				nvm_addr_pr(blks[i]);
-				}*/
 			}
 
 			ssize_t err = nvm_addr_read(vblk->dev, addrs,
 						     NVM_CMD_NADDR, buf_off,
-						     NULL, PMODE, NULL);
+						     NULL, PMODE, &ret);
 			if (err) {
 				NVM_DEBUG("FAILED: nvm_addr_write e(%ld)", err);
 				++nerr;
 			}
+#ifdef NVM_DEBUG_ENABLED
+			#pragma omp critical
+			{
+				for (int i = 0; i < NVM_CMD_NADDR; ++i) {
+					printf("spg(%03lu) idx(%d) vpg(%d) ",
+						spg, idx, vpg);
+					nvm_addr_pr(addrs[i]);
+				}
+			}
+#endif
 		}
 	}
 
