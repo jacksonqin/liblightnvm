@@ -245,11 +245,6 @@ nvm_vblk_alloc
 
 .. doxygenfunction:: nvm_vblk_alloc
 
-nvm_vblk_alloc_set
-------------------
-
-.. doxygenfunction:: nvm_vblk_alloc_set
-
 nvm_vblk_alloc_line
 -------------------
 
