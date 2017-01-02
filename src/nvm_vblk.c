@@ -160,8 +160,7 @@ ssize_t nvm_vblk_pwrite(struct nvm_vblk *vblk, const void *buf, size_t count,
 	const size_t bgn = offset / alignment;
 	const size_t end = bgn + (count / alignment);
 
-	const int NVM_OP_NADDR = geo->nplanes * geo->nsectors;
-	const int NVM_CMD_NADDR = NVM_OP_NADDR;
+	const int NVM_CMD_NADDR = geo->nplanes * geo->nsectors;
 
 	const char *data;
 
@@ -259,8 +258,7 @@ ssize_t nvm_vblk_pread(struct nvm_vblk *vblk, void *buf, size_t count,
 	const size_t bgn = offset / alignment;
 	const size_t end = bgn + (count / alignment);
 
-	const int NVM_OP_NADDR = geo->nplanes * geo->nsectors;
-	const int NVM_CMD_NADDR = NVM_OP_NADDR;
+	const int NVM_CMD_NADDR = geo->nplanes * geo->nsectors;
 
 	if (offset + count > vblk->nbytes) {			// Check bounds
 		errno = EINVAL;
