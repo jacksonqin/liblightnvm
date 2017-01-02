@@ -127,16 +127,14 @@ ssize_t nvm_vblk_erase(struct nvm_vblk *vblk)
 		struct nvm_addr addrs[nplanes];
 		ssize_t err;
 
-		for (int i = 0; i < nplanes; ++i) {
-			addrs[i].ppa = vblk->blks[i].ppa;
-			addrs[i].g.pl = i % nplanes;
+		for (int pl = 0; pl < nplanes; ++pl) {
+			addrs[pl].ppa = vblk->blks[i].ppa;
+			addrs[pl].g.pl = pl;
 		}
 
 		err = nvm_addr_erase(vblk->dev, addrs, nplanes, PMODE, NULL);
-		if (err) {
-			NVM_DEBUG("FAILED: nvm_addr_erase err(%ld)", err);
+		if (err)
 			++nerr;
-		}
 	}
 
 	if (nerr) {
@@ -184,40 +182,37 @@ ssize_t nvm_vblk_pwrite(struct nvm_vblk *vblk, const void *buf, size_t count,
 		}
 	}
 
-	for (size_t spg = bgn; spg < end; ++spg) {
-		struct nvm_addr addrs[NVM_CMD_NADDR];
-		const char *data_off;
-		struct nvm_ret ret = {};
+	#pragma omp parallel num_threads(vblk->nthreads) reduction(+:nerr)
+	{
+		const size_t tid = omp_get_thread_num();
 
-		if (buf)
-			data_off = data + (spg - bgn) * geo->sector_nbytes * NVM_CMD_NADDR;
-		else
-			data_off = data;
+		for (size_t spg = bgn + tid; spg < end; spg += vblk->nthreads) {
+			struct nvm_addr addrs[NVM_CMD_NADDR];
+			const char *data_off;
+			struct nvm_ret ret = {};
 
-		int idx = spg % vblk->nblks;
-		int vpg = (spg / vblk->nblks) % geo->npages;
+			if (buf)
+				data_off = data + (spg - bgn) * geo->sector_nbytes * NVM_CMD_NADDR;
+			else
+				data_off = data;
 
-		// Unroll: nplane X nsector
-		for (int i = 0; i < NVM_CMD_NADDR; ++i) {
-			addrs[i].ppa = vblk->blks[idx].ppa;
-			addrs[i].g.pg = vpg;
-			addrs[i].g.pl = (i / geo->nsectors) % geo->nplanes;
-			addrs[i].g.sec = i % geo->nsectors;
+			int idx = spg % vblk->nblks;
+			int vpg = (spg / vblk->nblks) % geo->npages;
+
+			// Unroll: nplane X nsector
+			for (int i = 0; i < NVM_CMD_NADDR; ++i) {
+				addrs[i].ppa = vblk->blks[idx].ppa;
+				addrs[i].g.pg = vpg;
+				addrs[i].g.pl = (i / geo->nsectors) % geo->nplanes;
+				addrs[i].g.sec = i % geo->nsectors;
+			}
+
+			ssize_t err = nvm_addr_write(vblk->dev, addrs,
+						     NVM_CMD_NADDR, data_off,
+						     NULL, PMODE, &ret);
+			if (err)
+				++nerr;
 		}
-
-		ssize_t err = nvm_addr_write(vblk->dev, addrs,
-					     NVM_CMD_NADDR, data_off,
-					     NULL, PMODE, &ret);
-		if (err)
-			++nerr;
-#ifdef NVM_DEBUG_ENABLED
-		#pragma omp critical
-		for (int i = 0; i < NVM_CMD_NADDR; ++i) {
-			printf("E(%ld): spg(%04lu) idx(%d) vpg(%04d) ",
-			       err, spg, idx, vpg);
-			nvm_addr_pr(addrs[i]);
-		}
-#endif
 	}
 
 	if (nerr) {
@@ -270,37 +265,34 @@ ssize_t nvm_vblk_pread(struct nvm_vblk *vblk, void *buf, size_t count,
 		return -1;
 	}
 
-	for (size_t spg = bgn; spg < end; ++spg) {
-		struct nvm_addr addrs[NVM_CMD_NADDR];
-		char *buf_off;
-		struct nvm_ret ret = {};
+	#pragma omp parallel num_threads(vblk->nthreads) reduction(+:nerr)
+	{
+		const size_t tid = omp_get_thread_num();
 
-		buf_off = buf + (spg - bgn) * geo->sector_nbytes * NVM_CMD_NADDR;
+		for (size_t spg = bgn + tid; spg < end; spg += vblk->nthreads) {
+			struct nvm_addr addrs[NVM_CMD_NADDR];
+			char *buf_off;
+			struct nvm_ret ret = {};
 
-		int idx = spg % vblk->nblks;
-		int vpg = (spg / vblk->nblks) % geo->npages;
+			buf_off = buf + (spg - bgn) * geo->sector_nbytes * NVM_CMD_NADDR;
 
-		// Unroll: nplanes X nsectors
-		for (int i = 0; i < NVM_CMD_NADDR; ++i) {
-			addrs[i].ppa = vblk->blks[idx].ppa;
-			addrs[i].g.pg = vpg;
-			addrs[i].g.pl = (i / geo->nsectors) % geo->nplanes;
-			addrs[i].g.sec = i % geo->nsectors;
+			int idx = spg % vblk->nblks;
+			int vpg = (spg / vblk->nblks) % geo->npages;
+
+			// Unroll: nplanes X nsectors
+			for (int i = 0; i < NVM_CMD_NADDR; ++i) {
+				addrs[i].ppa = vblk->blks[idx].ppa;
+				addrs[i].g.pg = vpg;
+				addrs[i].g.pl = (i / geo->nsectors) % geo->nplanes;
+				addrs[i].g.sec = i % geo->nsectors;
+			}
+
+			ssize_t err = nvm_addr_read(vblk->dev, addrs,
+						     NVM_CMD_NADDR, buf_off,
+						     NULL, PMODE, &ret);
+			if (err)
+				++nerr;
 		}
-
-		ssize_t err = nvm_addr_read(vblk->dev, addrs,
-					     NVM_CMD_NADDR, buf_off,
-					     NULL, PMODE, &ret);
-		if (err)
-			++nerr;
-#ifdef NVM_DEBUG_ENABLED
-		#pragma omp critical
-		for (int i = 0; i < NVM_CMD_NADDR; ++i) {
-			printf("E(%ld): spg(%04lu) idx(%d) vpg(%04d) ",
-			       err, spg, idx, vpg);
-			nvm_addr_pr(addrs[i]);
-		}
-#endif
 	}
 
 	if (nerr) {
