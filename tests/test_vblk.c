@@ -95,7 +95,7 @@ void _test_VBLK(int test_expected_read_fail)
 	res = nvm_vblk_read(vblk, buf_r, nbytes);	// EXPECT: OK
 	CU_ASSERT(res >= 0);
 	if (res < 0) {
-		CU_FAIL("FAILED: nvm_vblk_write");
+		CU_FAIL("FAILED: nvm_vblk_read");
 		return;
 	}
 
