@@ -142,6 +142,9 @@ ssize_t nvm_vblk_erase(struct nvm_vblk *vblk)
 		return -1;
 	}
 
+	vblk->pos_write = 0;
+	vblk->pos_read = 0;
+
 	return vblk->nbytes;
 }
 

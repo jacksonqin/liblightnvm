@@ -109,7 +109,7 @@ void test_VBLK_PE_PW_PR(void)
 
 void test_VBLK_PE_PR_PW_PR(void)
 {
-	_test_VBLK(0);
+	_test_VBLK(1);
 }
 
 int main(int argc, char **argv)
