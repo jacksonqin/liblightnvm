@@ -125,10 +125,11 @@ static inline int _cmd_nblks(int nblks, int cmd_nblks_max)
 ssize_t nvm_vblk_erase(struct nvm_vblk *vblk)
 {
 	size_t nerr = 0;
-	const struct nvm_geo *geo = nvm_dev_get_geo(vblk->dev);
-	const int PMODE = vblk->dev->pmode;
+	//const struct nvm_geo *geo = nvm_dev_get_geo(vblk->dev);
+	//const int PMODE = vblk->dev->pmode;
 
-	const int BLK_NADDRS = geo->nplanes;
+	//const int BLK_NADDRS = geo->nplanes;
+	const int BLK_NADDRS = 1;
 	const int CMD_NBLKS = _cmd_nblks(vblk->nblks,
 				vblk->dev->erase_naddrs_max / BLK_NADDRS);
 	const int NTHREADS = vblk->nblks < CMD_NBLKS ? 1 : vblk->nblks / CMD_NBLKS;
@@ -147,7 +148,7 @@ ssize_t nvm_vblk_erase(struct nvm_vblk *vblk)
 			const int idx = off + (i / BLK_NADDRS);
 
 			addrs[i].ppa = vblk->blks[idx].ppa;
-			addrs[i].g.pl = i % geo->nplanes;
+			//addrs[i].g.pl = i % geo->nplanes;
 		}
 
 		//err = nvm_addr_erase(vblk->dev, addrs, naddrs, PMODE, &ret);
