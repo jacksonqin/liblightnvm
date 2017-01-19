@@ -380,6 +380,7 @@ void nvm_dev_pr(struct nvm_dev *dev)
 	       dev->erase_naddrs_max,
 	       dev->read_naddrs_max,
 	       dev->write_naddrs_max);
+	printf(" meta_mode(%d),\n", dev->meta_mode);
 	printf(" bbts_cached(%d)\n}\n", dev->bbts_cached);
 	printf("dev-"); nvm_geo_pr(&dev->geo);
 	printf("dev-"); nvm_addr_fmt_pr(&dev->fmt);
