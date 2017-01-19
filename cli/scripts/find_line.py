@@ -30,6 +30,7 @@ def main():
             cmd = [
                 CMD,
                 sub,
+                DEV,
                 str(ch_bgn),
                 str(ch_end),
                 str(lun_bgn),
