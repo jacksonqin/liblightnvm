@@ -83,8 +83,8 @@ struct nvm_vblk;
 
 enum meta_mode {
 	NVM_META_MODE_NONE = 0x0,
-	NVM_META_MODE_ALPHA = 0x2,
-	NVM_META_MODE_CONST = 0x4
+	NVM_META_MODE_ALPHA = 0x1,
+	NVM_META_MODE_CONST = 0x2
 };
 
 enum nvm_bounds {
