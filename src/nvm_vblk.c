@@ -150,7 +150,8 @@ ssize_t nvm_vblk_erase(struct nvm_vblk *vblk)
 			addrs[i].g.pl = i % geo->nplanes;
 		}
 
-		err = nvm_addr_erase(vblk->dev, addrs, naddrs, PMODE, &ret);
+		//err = nvm_addr_erase(vblk->dev, addrs, naddrs, PMODE, &ret);
+		err = nvm_addr_erase(vblk->dev, addrs, naddrs, 0x0, &ret);
 		if (err)
 			++nerr;
 
