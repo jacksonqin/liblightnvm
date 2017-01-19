@@ -6,7 +6,7 @@ import pprint
 
 CMD = "nvm_vblk"
 SUBS = ["line_erase", "line_write", "line_read"]
-DEV = "nvme0n1"
+DEV = "/dev/nvme0n1"
 
 NCHANNELS = 16
 NLUNS = 8
