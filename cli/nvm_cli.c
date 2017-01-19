@@ -176,6 +176,7 @@ NVM_CLI_CMD *nvm_cli_setup(int argc, char **argv, NVM_CLI_CMD cmds[], int ncmds)
 		perror("Failed using meta_mode from CLI");
 		return NULL;
 	}
+	nvm_dev_set_meta_mode(cmd->args.dev, meta_mode);
 
 	if (getenv("NVM_CLI_ERASE_NADDRS_MAX")) {
 		int erase_naddrs_max = atoi(getenv("NVM_CLI_ERASE_NADDRS_MAX"));
